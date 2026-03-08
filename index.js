@@ -82,7 +82,9 @@ const connectDB = async () => {
   if (mongoose.connections[0].readyState) return;
   console.log("Attempting to connect to MongoDB...");
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, {
+      bufferCommands: false, // Disable buffering to fail fast on connection issues
+    });
     console.log("✅ MongoDB connected successfully");
   } catch (err) {
     console.error("❌ MongoDB connection error:", err.message);
