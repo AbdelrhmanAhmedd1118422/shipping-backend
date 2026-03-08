@@ -77,11 +77,18 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Internal server error" });
 });
 
-console.log("Attempting to connect to MongoDB...");
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected successfully"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err.message));
+// Connect to MongoDB
+const connectDB = async () => {
+  if (mongoose.connections[0].readyState) return;
+  console.log("Attempting to connect to MongoDB...");
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("✅ MongoDB connected successfully");
+  } catch (err) {
+    console.error("❌ MongoDB connection error:", err.message);
+  }
+};
+connectDB();
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
