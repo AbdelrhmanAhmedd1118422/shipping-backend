@@ -77,28 +77,36 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Internal server error" });
 });
 
-// Connect to MongoDB
+// Connect to MongoDB (cached for serverless)
+let cachedConnection = null;
 const connectDB = async () => {
-  if (mongoose.connections[0].readyState) return;
+  if (cachedConnection) return cachedConnection;
+  if (mongoose.connections[0].readyState) {
+    cachedConnection = mongoose.connections[0];
+    return cachedConnection;
+  }
   console.log("Attempting to connect to MongoDB...");
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      bufferCommands: false, // Disable buffering to fail fast on connection issues
-    });
+    cachedConnection = await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ MongoDB connected successfully");
+    return cachedConnection;
   } catch (err) {
     console.error("❌ MongoDB connection error:", err.message);
+    throw err;
   }
 };
-connectDB();
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Only listen locally, not on Vercel
+if (!process.env.VERCEL) {
+  connectDB();
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
 
+// Vercel serverless handler
 export default async function handler(req, res) {
   await connectDB();
   return app(req, res);
 }
-
